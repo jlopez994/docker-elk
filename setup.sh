@@ -5,7 +5,7 @@ docker-compose up setup
 docker-compose up -d
 
 echo "Waiting for Kibana to be ready..."
-until curl -s -o /dev/null -w "%{http_code}" http://localhost:5601/login -u "elastic:$ELASTIC_PASSWORD" | grep 200 > /dev/null; do
+until curl -s -o /dev/null -w "%{http_code}" http://localhost:5601/login -u "elastic:changeme" | grep 200 > /dev/null; do
     sleep 5
 done
 
@@ -22,9 +22,9 @@ ELASTIC_PASSWORD=`echo $ELASTIC | awk '/New value:/ {print $NF}'`
 LOGSTASH_INTERNAL_PASSWORD=`echo $LOGSTASH | awk '/New value:/ {print $NF}'`
 KIBANA_SYSTEM_PASSWORD=`echo $KIBANA | awk '/New value:/ {print $NF}'`
 
-sed -i "s/ELASTIC_PASSWORD/$ELASTIC_PASSWORD/g" .env
-sed -i "s/LOGSTASH_INTERNAL_PASSWORD/$LOGSTASH_INTERNAL_PASSWORD/g" .env
-sed -i "s/KIBANA_SYSTEM_PASSWORD/$KIBANA_SYSTEM_PASSWORD/g" .env
+sed -i "s/ELASTIC_PASSWORD='changeme'/ELASTIC_PASSWORD='$ELASTIC_PASSWORD'/g" .env
+sed -i "s/LOGSTASH_INTERNAL_PASSWORD='changeme'/LOGSTASH_INTERNAL_PASSWORD='$LOGSTASH_INTERNAL_PASSWORD'/g" .env
+sed -i "s/KIBANA_SYSTEM_PASSWORD='changeme'/KIBANA_SYSTEM_PASSWORD='$KIBANA_SYSTEM_PASSWORD'/g" .env
 
 docker-compose up -d logstash kibana
 
