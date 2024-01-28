@@ -1,4 +1,12 @@
 #!/bin/bash
+
+# 5044: Logstash Beats input
+# 50000: Logstash TCP input
+# 9600: Logstash monitoring API
+# 9200: Elasticsearch HTTP
+# 9300: Elasticsearch TCP transport
+# 5601: Kibana
+
 sudo sysctl -w vm.max_map_count=262144
 
 docker-compose up setup
@@ -8,6 +16,8 @@ echo "Waiting for Kibana to be ready..."
 until curl -s -o /dev/null -w "%{http_code}" http://localhost:5601/login -u "elastic:changeme" | grep 200 > /dev/null; do
     sleep 5
 done
+
+sleep 10
 
 ELASTIC=`docker-compose exec elasticsearch bin/elasticsearch-reset-password --batch --user elastic`
 LOGSTASH=`docker-compose exec elasticsearch bin/elasticsearch-reset-password --batch --user logstash_internal`
@@ -28,9 +38,11 @@ sed -i "s/KIBANA_SYSTEM_PASSWORD='changeme'/KIBANA_SYSTEM_PASSWORD='$KIBANA_SYST
 
 docker-compose up -d logstash kibana
 
-echo "Waiting for Kibana to be ready..."
-until curl -s -o /dev/null -w "%{http_code}" http://localhost:5601/login -u "elastic:$ELASTIC_PASSWORD" | grep 200 > /dev/null; do
-    sleep 5
-done
+# echo "Waiting for Kibana to be ready..."
+# until curl -s -o /dev/null -w "%{http_code}" http://localhost:5601/login -u "elastic:$ELASTIC_PASSWORD" | grep 200 > /dev/null; do
+#     sleep 5
+# done
 
-cat test.log | nc -q0 localhost 50000
+# sleep 10
+
+# cat test.log | nc -q0 localhost 50000
