@@ -100,8 +100,14 @@ services:
       - 5601:5601
     environment:
       KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:-}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kibana.rule=Host(`kibana.prueba.es`)"
+      - "traefik.http.routers.kibana.entrypoints=websecure"
+      - "traefik.http.routers.kibana.tls.certresolver=cloudflare"
     networks:
       - elk
+      - traefik
     depends_on:
       - elasticsearch
     restart: unless-stopped
@@ -109,6 +115,8 @@ services:
 networks:
   elk:
     driver: bridge
+  traefik:
+    external: true
 
 volumes:
   elasticsearch:
