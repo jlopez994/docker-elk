@@ -17,6 +17,25 @@ The Fleet Server exposes the TCP port `8220` for Agent to Server communications.
 
 ## Usage
 
+### CA Certificate Fingerprint
+
+Before starting Fleet Server, take note of the CA certificate's SHA256 fingerprint printed by the `docker-compose up
+tls` command (it is safe to run it multiple times), and use it as the value of the commented `ca_trusted_fingerprint`
+setting inside the [`kibana/config/kibana.yml`][config-kbn] file.
+
+The fingerprint appears on a line similar to the one below, in the output of the aforementioned command:
+
+```none
+⠿ SHA256 fingerprint: 846637d1bb82209640d31b79869a370c8e47c2dc15c7eafd4f3d615e51e3d503
+```
+
+This fingerprint is required for Fleet Server (and other Elastic Agents) to be able to verify the authenticity of the CA
+certificate presented by Elasticsearch during TLS handshakes.
+
+Restart Kibana with `docker-compose restart kibana` if it is already running.
+
+### Startup
+
 To include Fleet Server in the stack, run Docker Compose from the root of the repository with an additional command line
 argument referencing the `fleet-compose.yml` file:
 
@@ -37,11 +56,6 @@ management UI: [Fleet UI Settings][fleet-cfg].
 
 ## Known Issues
 
-- Logs and metrics are only collected within the Fleet Server's container. Ultimately, we want to emulate the behaviour
-  of the existing Metricsbeat and Filebeat extensions, and collect logs and metrics from all ELK containers
-  out-of-the-box. Unfortunately, this kind of use-case isn't (yet) well supported by Fleet, and most advanced
-  configurations currently require running Elastic Agents in [standalone mode][fleet-standalone].
-  (Relevant resource: [Migrate from Beats to Elastic Agent][fleet-beats])
 - The Elastic Agent auto-enrolls using the `elastic` super-user. With this approach, you do not need to generate a
   service token — either using the Fleet management UI or [CLI utility][es-svc-token] — prior to starting this
   extension. However convenient that is, this approach _does not follow security best practices_, and we recommend
@@ -64,6 +78,4 @@ management UI: [Fleet UI Settings][fleet-cfg].
 
 [config-kbn]: ../../kibana/config/kibana.yml
 
-[fleet-standalone]: https://www.elastic.co/guide/en/fleet/current/elastic-agent-configuration.html
-[fleet-beats]: https://www.elastic.co/guide/en/fleet/current/migrate-beats-to-agent.html
 [es-svc-token]: https://www.elastic.co/guide/en/elasticsearch/reference/current/service-tokens-command.html
