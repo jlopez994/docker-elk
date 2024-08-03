@@ -1,7 +1,4 @@
-version: '3.7'
-
 services:
-
   # The 'setup' service runs a one-off script which initializes users inside
   # Elasticsearch — such as 'logstash_internal' and 'kibana_system' — with the
   # values of the passwords defined in the '.env' file. It also creates the
@@ -102,10 +99,10 @@ services:
       SERVER_NAME: kibana.prueba.es
       KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:-}
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.kibana.rule=Host(`kibana.prueba.es`)"
-      - "traefik.http.routers.kibana.entrypoints=websecure"
-      - "traefik.http.routers.kibana.tls.certresolver=cloudflare"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.kibana.rule=Host(`kibana.prueba.es`)'
+      - 'traefik.http.routers.kibana.entrypoints=websecure'
+      - 'traefik.http.routers.kibana.tls.certresolver=cloudflare'
     networks:
       - elk
       - traefik
