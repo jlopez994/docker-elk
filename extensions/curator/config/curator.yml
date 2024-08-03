@@ -3,8 +3,7 @@
 
 elasticsearch:
   client:
-    hosts: [ https://elasticsearch:9200 ]
-    ca_certs: /.curator/ca.crt
+    hosts: [ http://elasticsearch:9200 ]
   other_settings:
     username: elastic
     password: ${ELASTIC_PASSWORD}

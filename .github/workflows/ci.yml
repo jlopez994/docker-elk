@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ tls ]
+    branches: [ main ]
   pull_request:
-    branches: [ tls ]
+    branches: [ main ]
 
 jobs:
 
@@ -29,8 +29,8 @@ jobs:
       - name: Pre-build container images
         run: >-
           docker compose
-          --profile=setup
           -f docker-compose.yml
+          -f extensions/logspout/logspout-compose.yml
           -f extensions/fleet/fleet-compose.yml
           -f extensions/fleet/agent-apmserver-compose.yml
           -f extensions/metricbeat/metricbeat-compose.yml
@@ -39,24 +39,6 @@ jobs:
           -f extensions/enterprise-search/enterprise-search-compose.yml
           build
 
-
-      - name: Generate X.509 assets for TLS communications
-        run: |
-          echo '::group::Generate certificates and private keys'
-          docker compose up tls
-          echo '::endgroup::'
-
-          echo '::group::Provide CA fingerprint for Fleet output'
-          declare ca_fingerprint
-          ca_fingerprint="$(openssl x509 -fingerprint -sha256 -noout -in tls/certs/ca/ca.crt \
-              | cut -d '=' -f2 \
-              | tr -d ':' \
-              | tr '[:upper:]' '[:lower:]'
-          )"
-          sed -i "s/#\(ca_trusted_fingerprint:\).*/\1 ${ca_fingerprint}/g" kibana/config/kibana.yml
-          git diff
-          echo '::endgroup::'
-
       ########################################################
       #                                                      #
       # Ensure §"Initial setup" of the README remains valid. #
@@ -64,40 +46,67 @@ jobs:
       ########################################################
 
       - name: Set password of every built-in user to 'testpasswd'
-        run: >-
-          sed -i
-          -e 's/\(ELASTIC_PASSWORD=\)'\''changeme'\''/\1testpasswd/g'
-          -e 's/\(LOGSTASH_INTERNAL_PASSWORD=\)'\''changeme'\''/\1testpasswd/g'
-          -e 's/\(KIBANA_SYSTEM_PASSWORD=\)'\''changeme'\''/\1testpasswd/g'
-          -e 's/\(METRICBEAT_INTERNAL_PASSWORD=\)'\'\''/\1testpasswd/g'
-          -e 's/\(FILEBEAT_INTERNAL_PASSWORD=\)'\'\''/\1testpasswd/g'
-          -e 's/\(HEARTBEAT_INTERNAL_PASSWORD=\)'\'\''/\1testpasswd/g'
-          -e 's/\(MONITORING_INTERNAL_PASSWORD=\)'\'\''/\1testpasswd/g'
-          -e 's/\(BEATS_SYSTEM_PASSWORD=\)'\'\''/\1testpasswd/g'
-          .env
+        run: |
 
-      - name:  Set up users and roles
-        run: docker compose up setup
+          sed -i -e 's/\(ELASTIC_PASSWORD=\)'\''changeme'\''/\1testpasswd/g' \
+                 -e 's/\(LOGSTASH_INTERNAL_PASSWORD=\)'\''changeme'\''/\1testpasswd/g' \
+                 -e 's/\(KIBANA_SYSTEM_PASSWORD=\)'\''changeme'\''/\1testpasswd/g' \
+                 -e 's/\(METRICBEAT_INTERNAL_PASSWORD=\)'\'\''/\1testpasswd/g' \
+                 -e 's/\(FILEBEAT_INTERNAL_PASSWORD=\)'\'\''/\1testpasswd/g' \
+                 -e 's/\(HEARTBEAT_INTERNAL_PASSWORD=\)'\'\''/\1testpasswd/g' \
+                 -e 's/\(MONITORING_INTERNAL_PASSWORD=\)'\'\''/\1testpasswd/g' \
+                 -e 's/\(BEATS_SYSTEM_PASSWORD=\)'\'\''/\1testpasswd/g' .env
 
-      #############################
-      #                           #
-      # Test core and extensions. #
-      #                           #
-      #############################
+      ##########################################################
+      #                                                        #
+      # Test core components: Elasticsearch, Logstash, Kibana. #
+      #                                                        #
+      ##########################################################
+
+      - name:  Run the stack
+        run: |
+          docker compose up setup
+          docker compose up -d
 
       # Elasticsearch's high disk watermark gets regularly exceeded on GitHub Actions runners.
       # https://www.elastic.co/guide/en/elasticsearch/reference/8.10/fix-watermark-errors.html
       - name: Disable Elasticsearch disk allocation decider
         run: .github/workflows/scripts/disable-disk-alloc-decider.sh
 
+      - name: Execute core test suite
+        run: .github/workflows/scripts/run-tests-core.sh
+
+      ##############################
+      #                            #
+      # Test supported extensions. #
+      #                            #
+      ##############################
+
       #
-      # Core components: Elasticsearch, Logstash, Kibana
+      # Logspout
       #
 
-      - name: Execute core test suite
+      - name: Execute Logspout test suite
         run: |
-          docker compose up -d
-          .github/workflows/scripts/run-tests-core.sh
+
+          # Set mandatory Logstash settings
+
+          sed -i '$ a input { udp { port => 50000 codec => json } }' logstash/pipeline/logstash.conf
+
+          # Restart Logstash for changes to take effect
+
+          docker compose restart logstash
+
+          # Run Logspout and execute tests.
+
+          docker compose -f docker-compose.yml -f extensions/logspout/logspout-compose.yml up --remove-orphans -d logspout
+          .github/workflows/scripts/run-tests-logspout.sh
+
+          # Revert changes to Logstash configuration
+
+          sed -i '/input { udp { port => 50000 codec => json } }/d' logstash/pipeline/logstash.conf
+          docker compose restart logstash
+
           # next steps don't need Logstash
           docker compose stop logstash
 
@@ -172,6 +181,7 @@ jobs:
 
           docker compose \
           -f docker-compose.yml \
+          -f extensions/logspout/logspout-compose.yml \
           -f extensions/fleet/fleet-compose.yml \
           -f extensions/fleet/agent-apmserver-compose.yml \
           -f extensions/metricbeat/metricbeat-compose.yml \
@@ -182,6 +192,7 @@ jobs:
 
           docker compose \
           -f docker-compose.yml \
+          -f extensions/logspout/logspout-compose.yml \
           -f extensions/fleet/fleet-compose.yml \
           -f extensions/fleet/agent-apmserver-compose.yml \
           -f extensions/metricbeat/metricbeat-compose.yml \
@@ -210,6 +221,7 @@ jobs:
         run: >-
           docker compose
           -f docker-compose.yml
+          -f extensions/logspout/logspout-compose.yml
           -f extensions/fleet/fleet-compose.yml
           -f extensions/fleet/agent-apmserver-compose.yml
           -f extensions/metricbeat/metricbeat-compose.yml

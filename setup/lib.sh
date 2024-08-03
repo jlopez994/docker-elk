@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-es_ca_cert="${BASH_SOURCE[0]%/*}"/ca.crt
-
 # Log a message.
 function log {
 	echo "[+] $1"
@@ -26,9 +24,7 @@ function suberr {
 function wait_for_elasticsearch {
 	local elasticsearch_host="${ELASTICSEARCH_HOST:-elasticsearch}"
 
-	local -a args=( '-s' '-D-' '-m15' '-w' '%{http_code}' 'https://elasticsearch:9200/'
-		'--resolve' "elasticsearch:9200:${elasticsearch_host}" '--cacert' "$es_ca_cert"
-		)
+	local -a args=( '-s' '-D-' '-m15' '-w' '%{http_code}' "http://${elasticsearch_host}:9200/" )
 
 	if [[ -n "${ELASTIC_PASSWORD:-}" ]]; then
 		args+=( '-u' "elastic:${ELASTIC_PASSWORD}" )
@@ -65,9 +61,7 @@ function wait_for_elasticsearch {
 function wait_for_builtin_users {
 	local elasticsearch_host="${ELASTICSEARCH_HOST:-elasticsearch}"
 
-	local -a args=( '-s' '-D-' '-m15' 'https://elasticsearch:9200/_security/user?pretty'
-		'--resolve' "elasticsearch:9200:${elasticsearch_host}" '--cacert' "$es_ca_cert"
-		)
+	local -a args=( '-s' '-D-' '-m15' "http://${elasticsearch_host}:9200/_security/user?pretty" )
 
 	if [[ -n "${ELASTIC_PASSWORD:-}" ]]; then
 		args+=( '-u' "elastic:${ELASTIC_PASSWORD}" )
@@ -117,8 +111,7 @@ function check_user_exists {
 	local elasticsearch_host="${ELASTICSEARCH_HOST:-elasticsearch}"
 
 	local -a args=( '-s' '-D-' '-m15' '-w' '%{http_code}'
-		"https://elasticsearch:9200/_security/user/${username}"
-		'--resolve' "elasticsearch:9200:${elasticsearch_host}" '--cacert' "$es_ca_cert"
+		"http://${elasticsearch_host}:9200/_security/user/${username}"
 		)
 
 	if [[ -n "${ELASTIC_PASSWORD:-}" ]]; then
@@ -154,8 +147,7 @@ function set_user_password {
 	local elasticsearch_host="${ELASTICSEARCH_HOST:-elasticsearch}"
 
 	local -a args=( '-s' '-D-' '-m15' '-w' '%{http_code}'
-		"https://elasticsearch:9200/_security/user/${username}/_password"
-		'--resolve' "elasticsearch:9200:${elasticsearch_host}" '--cacert' "$es_ca_cert"
+		"http://${elasticsearch_host}:9200/_security/user/${username}/_password"
 		'-X' 'POST'
 		'-H' 'Content-Type: application/json'
 		'-d' "{\"password\" : \"${password}\"}"
@@ -189,8 +181,7 @@ function create_user {
 	local elasticsearch_host="${ELASTICSEARCH_HOST:-elasticsearch}"
 
 	local -a args=( '-s' '-D-' '-m15' '-w' '%{http_code}'
-		"https://elasticsearch:9200/_security/user/${username}"
-		'--resolve' "elasticsearch:9200:${elasticsearch_host}" '--cacert' "$es_ca_cert"
+		"http://${elasticsearch_host}:9200/_security/user/${username}"
 		'-X' 'POST'
 		'-H' 'Content-Type: application/json'
 		'-d' "{\"password\":\"${password}\",\"roles\":[\"${role}\"]}"
@@ -223,8 +214,7 @@ function ensure_role {
 	local elasticsearch_host="${ELASTICSEARCH_HOST:-elasticsearch}"
 
 	local -a args=( '-s' '-D-' '-m15' '-w' '%{http_code}'
-		"https://elasticsearch:9200/_security/role/${name}"
-		'--resolve' "elasticsearch:9200:${elasticsearch_host}" '--cacert' "$es_ca_cert"
+		"http://${elasticsearch_host}:9200/_security/role/${name}"
 		'-X' 'POST'
 		'-H' 'Content-Type: application/json'
 		'-d' "$body"
