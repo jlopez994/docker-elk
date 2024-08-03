@@ -1,7 +1,4 @@
-version: '3.7'
-
 services:
-
   # The 'tls' service runs a one-off script which initializes TLS certificates and
   # private keys for all components of the stack inside the local tls/ directory.
   #
@@ -18,7 +15,7 @@ services:
       context: tls/
       args:
         ELASTIC_VERSION: ${ELASTIC_VERSION}
-    user: root  # ensures we can write to the local tls/ directory.
+    user: root # ensures we can write to the local tls/ directory.
     init: true
     volumes:
       - ./tls/entrypoint.sh:/entrypoint.sh:ro,Z
@@ -137,10 +134,10 @@ services:
       SERVER_NAME: kibana.prueba.es
       KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:-}
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.kibana.rule=Host(`kibana.prueba.es`)"
-      - "traefik.http.routers.kibana.entrypoints=websecure"
-      - "traefik.http.routers.kibana.tls.certresolver=cloudflare"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.kibana.rule=Host(`kibana.prueba.es`)'
+      - 'traefik.http.routers.kibana.entrypoints=websecure'
+      - 'traefik.http.routers.kibana.tls.certresolver=cloudflare'
     networks:
       - elk
       - traefik
