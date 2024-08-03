@@ -147,6 +147,7 @@ services:
 
 networks:
   elk:
+    name: elk
     driver: bridge
   traefik:
     external: true
