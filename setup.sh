@@ -9,7 +9,6 @@
 
 sudo sysctl -w vm.max_map_count=262144
 
-docker compose up tls
 docker compose up setup
 docker compose up -d
 
